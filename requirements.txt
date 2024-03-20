@@ -1,0 +1,10 @@
+Flask==2.3.2
+folium==0.14.0
+geopandas==0.13.2
+matplotlib==3.7.1
+numpy==1.24.3
+pandas==2.0.2
+scikit_learn==1.2.2
+seaborn==0.12.2
+Shapely==2.0.1
+Werkzeug==2.3.4

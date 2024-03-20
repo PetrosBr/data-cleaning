@@ -1,0 +1,9 @@
+{
+  "t": "t",
+  "shipid": "shipid",
+  "lon": "lon",
+  "lat": "lat",
+  "speed": "speed",
+  "course": "course"
+
+}
