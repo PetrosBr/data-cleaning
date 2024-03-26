@@ -5,6 +5,7 @@ from zipfile import ZipFile
 from cleaning import *
 from spoofing_detection import *
 from visualizations import *
+
 import os
 import json
 import shutil
@@ -21,6 +22,10 @@ def load_column_mappings():
         return {}  # Return an empty dict if the config file does not exist
 
 
+
+
+app = Flask(__name__)
+
 @app.route('/cleaning', methods=['POST'])
 
 def clean_data():
@@ -35,10 +40,16 @@ def clean_data():
 
     filename = secure_filename(file.filename)
     file.save(filename)
+
     column_mappings = load_column_mappings()
     # Load the data from the file
     data = pd.read_csv(filename)
     data.rename(columns=column_mappings, inplace=True)
+
+
+    # Load the data from the file
+    data = pd.read_csv(filename)
+
 
     line_data = pd.DataFrame(data)
 
@@ -61,11 +72,12 @@ def clean_data():
         spoof_data.loc[count] = new_row
         count += 1
 
+
     vis_data = line_data.rename(columns={'shipid': 'MMSI', 'lon': 'x', 'lat':'y', 't': '# Timestamp'})
     
     outliers_dir = "Clusters"
-    map_output_filename = 'map_visualization.html'
-    plot_on_a_map(vis_data, spoof_data, outliers_dir, output_file=map_output_filename)
+    #map_output_filename = 'map_visualization.html'
+    #plot_on_a_map(vis_data, spoof_data, outliers_dir, output_file=map_output_filename)
 
     
     problem_mmsis = spoof_data[spoof_data['hasProblem'] == True]['MMSI'].unique()
@@ -78,18 +90,33 @@ def clean_data():
     line_data.rename(columns={v: k for k, v in column_mappings.items()}, inplace=True)
       
 
-    
+
+    # area of interest selection
+    line_data.rename(columns={'shipid': 'MMSI'}, inplace=True)
+    constrained_region_df = spoof_data.merge(line_data, on=['MMSI'], how='inner')
+
+    world = geopandas.read_file(geopandas.datasets.get_path('naturalearth_lowres'))
+    greece = world[world['name'] == 'Greece']['geometry'].values[0]
+
+    constrained_region_df = areas_of_interest(constrained_region_df, greece, lat_col_name='lat', long_col_name='lon')
+
+    # visualization
+    constrained_region_df['t'] = pd.to_datetime(constrained_region_df['t'])
+
+    # TODO: Add a way to return the visualization or save it to a file
+
 
     # Save cleaned data to CSV files
     line_data.to_csv('cleaned_data.csv')
     spoof_data.to_csv('spoof_status.csv')
-    
-    # Create a ZipFile object
+
+
     with ZipFile('cleaned_data.zip', 'w') as zipf:
         # Add multiple files to the zip
         zipf.write('cleaned_data.csv')
         zipf.write('spoof_status.csv')
-        zipf.write(map_output_filename)
+
+        #zipf.write(map_output_filename)
         
         # Add individual MMSI maps to the zip file
         for mmsi in problem_mmsis:
@@ -109,9 +136,10 @@ def clean_data():
     # Delete CSV files after creating zip
     os.remove('cleaned_data.csv')
     os.remove('spoof_status.csv')
+
     shutil.rmtree("Clusters")
-    os.remove('map_visualization.html')
-    
+    #os.remove('map_visualization.html')
+
 
     # Send zip file
     return send_file('cleaned_data.zip', mimetype='zip', as_attachment=True)
