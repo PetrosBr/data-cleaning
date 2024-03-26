@@ -63,9 +63,7 @@ def plot_mmsi_map(data, mmsi, outliers_dir, long_col_name='x', lat_col_name='y',
     output_file = f"{output_file_prefix}_{mmsi}.html"
     m.save(output_file)
 
-# -*- coding: utf-8 -*-
-import pandas as pd
-import folium
+
 
 
 def plot_on_a_map(data:pd.DataFrame, mmsi_col_name:str='MMSI', time_col_name:str='t',
